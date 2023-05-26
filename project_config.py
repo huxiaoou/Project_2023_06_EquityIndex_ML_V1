@@ -39,6 +39,13 @@ sqlite3_tables = {
             "up": "REAL",
             "dn": "REAL",
             "skewness": "REAL",
+            "smart01": "REAL",
+            "smart02": "REAL",
+            "smart05": "REAL",
+            "smart01_ret": "REAL",
+            "smart02_ret": "REAL",
+            "smart05_ret": "REAL",
+
             "rtm": "REAL",
         }
     },

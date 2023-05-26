@@ -10,6 +10,10 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
                                     pre_settle: float, pre_spot_close: float,
                                     sub_win_width: int = 30, tot_bar_num: int = 240,
                                     amount_scale: float = 1e4, ret_scale: int = 100) -> pd.DataFrame:
+    # basic price
+    prev_day_close = m01["preclose"].iloc[0]
+    this_day_open = m01["daily_open"].iloc[0]
+
     # aggregate variables
     agg_vars = ["open", "high", "low", "close", "volume", "amount"]
     agg_methods = {
@@ -27,16 +31,13 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
     m01["vwap"] = (m01["amount"] / m01["volume"] / contract_multiplier * amount_scale).fillna(method="ffill")
     m01["vwap_cum"] = (m01["amount"].cumsum() / m01["volume"].cumsum() / contract_multiplier * amount_scale).fillna(method="ffill")
     m01["m01_return"] = (m01["vwap"] / m01["vwap"].shift(1).fillna(pre_settle) - 1) * ret_scale
+    m01["m01_return_cls"] = (m01["close"] / m01["close"].shift(1).fillna(prev_day_close) - 1) * ret_scale
+    m01["smart_idx"] = m01["m01_return_cls"].abs() / np.sqrt(m01["volume"])
 
-    # basic price
-    prev_day_close = m01["preclose"].iloc[0]
-    this_day_open = m01["daily_open"].iloc[0]
-    this_day_end_vwap = m01["vwap"].iloc[-1]
-
+    # agg to 5,10,15 minutes
     m05 = m01.set_index("datetime")[agg_vars].resample("5T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
     m10 = m01.set_index("datetime")[agg_vars].resample("10T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
     m15 = m01.set_index("datetime")[agg_vars].resample("15T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
-
     for m_agg, m_agg_width in zip((m05, m10, m15), (5, 10, 15)):
         if len(m_agg) != tot_bar_num / m_agg_width:
             print("... data length is wrong! Length of M{:02d} is {} != {}".format(
@@ -44,6 +45,8 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
             print("... contract = {}".format(contract))
             print("... this program will terminate at once, please check again")
             sys.exit()
+
+    # initial results
     res = {
         "instrument": instrument,
         "contract": contract,
@@ -56,14 +59,19 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
         "vtop01_ret": {}, "vtop02_ret": {}, "vtop05_ret": {},  # #top #diff #return
         "vtop01_cvp": {}, "vtop02_cvp": {}, "vtop05_cvp": {},  # corr(vwap, volume)
         "vtop01_cvr": {}, "vtop02_cvr": {}, "vtop05_cvr": {},  # corr(m01_return, volume)
-
         "cvp": {}, "cvr": {},
         "up": {}, "dn": {},  # chart
         "skewness": {},  # skewness
+
+        "smart01": {}, "smart01_ret": {},
+        "smart02": {}, "smart02_ret": {},
+        "smart05": {}, "smart05_ret": {},
         "rtm": {},
     }
 
+    # core loop
     sub_win_num = int(tot_bar_num / sub_win_width)
+    this_day_end_vwap = m01["vwap"].iloc[-1]
     for t in range(1, sub_win_num):
         bar_num_before_t = t * sub_win_width
         norm_scale = np.sqrt(bar_num_before_t)
@@ -78,6 +86,22 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
         corr_top_01 = sorted_vwap_and_ret_by_volume.head(top01_bars).corr(method="spearman")
         corr_top_02 = sorted_vwap_and_ret_by_volume.head(top02_bars).corr(method="spearman")
         corr_top_05 = sorted_vwap_and_ret_by_volume.head(top05_bars).corr(method="spearman")
+
+        # kyzq: smart money
+        sorted_by_smart_idx = m01_before_t[["vwap", "vwap_cum", "volume", "amount", "smart_idx", "m01_return_cls"]].sort_values(by="smart_idx", ascending=False)
+        for threshold_prop in [0.1, 0.2, 0.5]:
+            volume_threshold = sorted_by_smart_idx["volume"].sum() * threshold_prop
+            n = sum(sorted_by_smart_idx["volume"] < volume_threshold) + 1
+            smart_df = sorted_by_smart_idx.head(n)
+            smart_vwap = smart_df["vwap"] @ smart_df["amount"] / smart_df["amount"].sum()
+            smart_ret = smart_df["m01_return_cls"] @ smart_df["amount"] / smart_df["amount"].sum()
+            res["smart" + "{:02d}".format(int(10 * threshold_prop))][t] = (smart_vwap / m01_before_t["vwap_cum"].iloc[-1] - 1) * ret_scale
+            res["smart" + "{:02d}_ret".format(int(10 * threshold_prop))][t] = smart_ret
+
+        # kyzq: amplitude
+        # kyzq: extremely return
+        # huxo: momentum adjusted by volatility
+        # kyzq: time center weighted by return
 
         res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
 
