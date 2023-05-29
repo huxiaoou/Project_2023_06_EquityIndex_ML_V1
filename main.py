@@ -56,7 +56,8 @@ if __name__ == "__main__":
             futures_em01_db_name=futures_em01_db_name,
             futures_md_dir=futures_md_dir,
             major_minor_dir=major_minor_dir,
-            research_features_and_return_dir=research_features_and_return_dir
+            research_features_and_return_dir=research_features_and_return_dir,
+            verbose=False,
         )
 
     if switch["toSql"]:

@@ -83,23 +83,25 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
         bar_num_before_t = t * sub_win_width
         norm_scale = np.sqrt(bar_num_before_t)
         m01_before_t = m01.iloc[0:bar_num_before_t, :]
-        next_vwap, ts = m01.at[bar_num_before_t, "vwap"], m01.at[bar_num_before_t, "timestamp"]
-
-        sorted_vwap_and_ret_by_volume = m01_before_t[["vwap", "m01_return", "volume"]].sort_values(by="volume", ascending=False)
-        skewness = m01_before_t["m01_return"].skew()
         top01_bars = int(0.1 * bar_num_before_t)
         top02_bars = int(0.2 * bar_num_before_t)
         top05_bars = int(0.5 * bar_num_before_t)
-        corr_top_01 = sorted_vwap_and_ret_by_volume.head(top01_bars).corr(method="spearman")
-        corr_top_02 = sorted_vwap_and_ret_by_volume.head(top02_bars).corr(method="spearman")
-        corr_top_05 = sorted_vwap_and_ret_by_volume.head(top05_bars).corr(method="spearman")
+        next_vwap, ts = m01.at[bar_num_before_t, "vwap"], m01.at[bar_num_before_t, "timestamp"]
 
+        res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
+
+        # --- --- --- --- ---
+        # --- return to mature
+        res["rtm"][t] = (this_day_end_vwap / next_vwap - 1) * ret_scale
+
+        # --- --- --- --- ---
+        # --- new alphas
         # kyzq: smart money
         sorted_by_smart_idx = m01_before_t[["vwap", "vwap_cum", "volume", "amount", "smart_idx", "m01_return_cls"]].sort_values(by="smart_idx", ascending=False)
         for threshold_prop in [0.1, 0.2, 0.5]:
             _id = "{:02d}".format(int(10 * threshold_prop))
             volume_threshold = sorted_by_smart_idx["volume"].sum() * threshold_prop
-            n = sum(sorted_by_smart_idx["volume"] < volume_threshold) + 1
+            n = sum(sorted_by_smart_idx["volume"].cumsum() < volume_threshold) + 1
             smart_df = sorted_by_smart_idx.head(n)
             smart_vwap = smart_df["vwap"] @ smart_df["amount"] / smart_df["amount"].sum()
             smart_ret = smart_df["m01_return_cls"] @ smart_df["amount"] / smart_df["amount"].sum()
@@ -127,19 +129,24 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
         neg_grp = m01_before_t.loc[neg_idx, "m01_return_cls"]
         pos_wgt = pos_grp.abs() / pos_grp.abs().sum()
         neg_wgt = neg_grp.abs() / neg_grp.abs().sum()
-        res["gu"][t] = pos_grp @ pos_wgt
-        res["gd"][t] = -neg_grp @ neg_wgt
+        res["gu"][t] = pos_grp.index @ pos_wgt
+        res["gd"][t] = neg_grp.index @ neg_wgt
         res["g_tau"][t] = res["gu"][t] - res["gd"][t]
         res["g_tau_abs"][t] = abs(res["g_tau"][t])
 
         # huxo: momentum adjusted by volatility
         m01_ret_return_mean = m01_before_t["m01_return"].mean()
         m01_ret_return_std = m01_before_t["m01_return"].std()
-        res["mtm_vol_adj"] = m01_ret_return_mean / m01_ret_return_std
+        res["mtm_vol_adj"][t] = m01_ret_return_mean / m01_ret_return_std
 
-        res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
+        # --- --- --- --- ---
+        # --- old style alphas
+        sorted_vwap_and_ret_by_volume = m01_before_t[["vwap", "m01_return", "volume"]].sort_values(by="volume", ascending=False)
+        skewness = m01_before_t["m01_return"].skew()
+        corr_top_01 = sorted_vwap_and_ret_by_volume.head(top01_bars).corr(method="spearman")
+        corr_top_02 = sorted_vwap_and_ret_by_volume.head(top02_bars).corr(method="spearman")
+        corr_top_05 = sorted_vwap_and_ret_by_volume.head(top05_bars).corr(method="spearman")
 
-        # --- alphas
         res["vwap_ret"][t] = (m01_before_t["vwap"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
         res["vwap_cum_ret"][t] = (m01_before_t["vwap_cum"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
         res["hgh_ret"][t] = (m01_before_t["daily_high"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
@@ -174,9 +181,6 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
             res["dn"][t] = 0
 
         res["skewness"][t] = skewness
-
-        # --- return to mature
-        res["rtm"][t] = (this_day_end_vwap / next_vwap - 1) * ret_scale
 
     res_df = pd.DataFrame(res)
     return res_df
