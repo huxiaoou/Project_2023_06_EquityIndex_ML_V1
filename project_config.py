@@ -7,6 +7,52 @@ equity_indexes = (
     ("000852.SH", "IM.CFE"),
 )
 
+factors = [
+    "basis",
+    "csr",
+    "onr",
+    "vwap_ret",
+    "vwap_cum_ret",
+    "hgh_ret",
+    "low_ret",
+    "vtop01_ret",
+    "vtop02_ret",
+    "vtop05_ret",
+    "vtop01_cvp",
+    "vtop02_cvp",
+    "vtop05_cvp",
+    "vtop01_cvr",
+    "vtop02_cvr",
+    "vtop05_cvr",
+    "cvp",
+    "cvr",
+    "up",
+    "dn",
+    "skewness",
+    "smart01",
+    "smart01_ret",
+    "smart02",
+    "smart02_ret",
+    "smart05",
+    "smart05_ret",
+    "vh01",
+    "vl01",
+    "vd01",
+    "vh02",
+    "vl02",
+    "vd02",
+    "vh05",
+    "vl05",
+    "vd05",
+    "exr",
+    "exrb01",
+    "gu",
+    "gd",
+    "g_tau",
+    "g_tau_abs",
+    "mtm_vol_adj",
+]
+
 sqlite3_tables = {
     "features_and_return": {
         "table_name": "features_and_return",
@@ -17,81 +63,32 @@ sqlite3_tables = {
             "tid": "TEXT",
             "timestamp": "INT4",
         },
-        "value_columns": {
-            "basis": "REAL",
-            "csr": "REAL",
-            "onr": "REAL",
-            "vwap_ret": "REAL",
-            "vwap_cum_ret": "REAL",
-            "hgh_ret": "REAL",
-            "low_ret": "REAL",
-            "vtop01_ret": "REAL",
-            "vtop02_ret": "REAL",
-            "vtop05_ret": "REAL",
-            "vtop01_cvp": "REAL",
-            "vtop02_cvp": "REAL",
-            "vtop05_cvp": "REAL",
-            "vtop01_cvr": "REAL",
-            "vtop02_cvr": "REAL",
-            "vtop05_cvr": "REAL",
-            "cvp": "REAL",
-            "cvr": "REAL",
-            "up": "REAL",
-            "dn": "REAL",
-            "skewness": "REAL",
-            "smart01": "REAL",
-            "smart01_ret": "REAL",
-            "smart02": "REAL",
-            "smart02_ret": "REAL",
-            "smart05": "REAL",
-            "smart05_ret": "REAL",
-            "vh01": "REAL",
-            "vl01": "REAL",
-            "vd01": "REAL",
-            "vh02": "REAL",
-            "vl02": "REAL",
-            "vd02": "REAL",
-            "vh05": "REAL",
-            "vl05": "REAL",
-            "vd05": "REAL",
-            "exr": "REAL",
-            "exrb01": "REAL",
-            "gu": "REAL",
-            "gd": "REAL",
-            "g_tau": "REAL",
-            "g_tau_abs": "REAL",
-            "mtm_vol_adj": "REAL",
-            "rtm": "REAL",
-        }
+        "value_columns": {f: "REAL" for f in factors + ["rtm"]}
     },
 
 }
 
-x_lbls = ["alpha{:02d}".format(_) for _ in range(19)]
-y_lbls = ["rtm"]
 instruments_universe = ["IC.CFE", "IH.CFE", "IF.CFE", "IM.CFE"]
 tids = ["T{:02d}".format(t) for t in range(1, 8)]
 
-# train_windows = (6, 12, 24)
-# model_lbls = ["lm", "mlpc", "mlpr"]
-# for instrument, tid, trn_win, model_lbl in ittl.product(
-#         instruments_universe + [None], tids, train_windows, model_lbls):
-#     model_grp_id = "-".join(filter(lambda z: z, ["M", instrument, tid, "TMW{:02d}".format(trn_win)]))
-#     pred_id = model_grp_id + "-pred-{}".format(model_lbl)
-#     sqlite3_tables.update({
-#         pred_id: {
-#             "table_name": "predictions",
-#             "primary_keys": {
-#                 "trade_date": "TEXT",
-#                 "instrument": "TEXT",
-#                 "contract": "TEXT",
-#                 "tid": "TEXT",
-#                 "timestamp": "INT4",
-#             },
-#             "value_columns": {
-#                 "rtm": "REAL",
-#                 "pred": "REAL",
-#             }
-#         },
-#     })
+# --- ic tests
+for factor, tid in ittl.product(factors, tids):
+    ic_tests_lib_id = "{}-{}-ic_tests".format(factor, tid)
+    sqlite3_tables.update({
+        ic_tests_lib_id: {
+            "table_name": "ic_tests",
+            "primary_keys": {
+                "trade_date": "TEXT",
+            },
+            "value_columns": {
+                "obs": "INTEGER",
+                "ic": "REAL",
+            }
+        },
+    })
+
+# --- simulation
 cost_rate = 5e-4
+
+if __name__ == "__main__":
+    print("Number of factors = {}".format(len(factors)))
