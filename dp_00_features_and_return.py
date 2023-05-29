@@ -79,7 +79,7 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
     # --- main loop
     for trade_date in calendar.get_iter_list(bgn_date, stp_date, True):
         prev_date = calendar.get_next_date(trade_date, -1)
-        m01_df = m01_db.read_by_date(t_trade_date=trade_date, t_value_columns=m01_columns)
+        m01_df = m01_db.read_by_date(t_trade_date=trade_date, t_value_columns=m01_columns).round(2)
         if len(m01_df) == 0:
             continue
 

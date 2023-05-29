@@ -45,7 +45,12 @@ sqlite3_tables = {
             "smart01_ret": "REAL",
             "smart02_ret": "REAL",
             "smart05_ret": "REAL",
-
+            "vh01": "REAL", "vl01": "REAL", "vd01": "REAL",
+            "vh02": "REAL", "vl02": "REAL", "vd02": "REAL",
+            "vh05": "REAL", "vl05": "REAL", "vd05": "REAL",
+            "exr": "REAL", "exrb01": "REAL",
+            "gu": "REAL", "gd": "REAL", "g_tau": "REAL", "g_tau_abs": "REAL",
+            "mtm_vol_adj": "REAL",
             "rtm": "REAL",
         }
     },

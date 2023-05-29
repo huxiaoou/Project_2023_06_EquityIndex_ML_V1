@@ -33,6 +33,7 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
     m01["m01_return"] = (m01["vwap"] / m01["vwap"].shift(1).fillna(pre_settle) - 1) * ret_scale
     m01["m01_return_cls"] = (m01["close"] / m01["close"].shift(1).fillna(prev_day_close) - 1) * ret_scale
     m01["smart_idx"] = m01["m01_return_cls"].abs() / np.sqrt(m01["volume"])
+    m01["amplitude"] = (m01["high"] / m01["low"] - 1) * ret_scale
 
     # agg to 5,10,15 minutes
     m05 = m01.set_index("datetime")[agg_vars].resample("5T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
@@ -62,10 +63,16 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
         "cvp": {}, "cvr": {},
         "up": {}, "dn": {},  # chart
         "skewness": {},  # skewness
-
         "smart01": {}, "smart01_ret": {},
         "smart02": {}, "smart02_ret": {},
         "smart05": {}, "smart05_ret": {},
+        "vh01": {}, "vl01": {}, "vd01": {},
+        "vh02": {}, "vl02": {}, "vd02": {},
+        "vh05": {}, "vl05": {}, "vd05": {},
+        "exr": {}, "exrb01": {},
+        "gu": {}, "gd": {}, "g_tau": {}, "g_tau_abs": {},
+        "mtm_vol_adj": {},
+
         "rtm": {},
     }
 
@@ -90,18 +97,45 @@ def cal_features_and_return_one_day(m01: pd.DataFrame,
         # kyzq: smart money
         sorted_by_smart_idx = m01_before_t[["vwap", "vwap_cum", "volume", "amount", "smart_idx", "m01_return_cls"]].sort_values(by="smart_idx", ascending=False)
         for threshold_prop in [0.1, 0.2, 0.5]:
+            _id = "{:02d}".format(int(10 * threshold_prop))
             volume_threshold = sorted_by_smart_idx["volume"].sum() * threshold_prop
             n = sum(sorted_by_smart_idx["volume"] < volume_threshold) + 1
             smart_df = sorted_by_smart_idx.head(n)
             smart_vwap = smart_df["vwap"] @ smart_df["amount"] / smart_df["amount"].sum()
             smart_ret = smart_df["m01_return_cls"] @ smart_df["amount"] / smart_df["amount"].sum()
-            res["smart" + "{:02d}".format(int(10 * threshold_prop))][t] = (smart_vwap / m01_before_t["vwap_cum"].iloc[-1] - 1) * ret_scale
-            res["smart" + "{:02d}_ret".format(int(10 * threshold_prop))][t] = smart_ret
+            res["smart" + _id][t] = (smart_vwap / m01_before_t["vwap_cum"].iloc[-1] - 1) * ret_scale
+            res["smart" + _id + "_ret"][t] = smart_ret
 
         # kyzq: amplitude
+        sorted_amplitude_by_vwap = m01_before_t[["amplitude", "vwap"]].sort_values(by="vwap", ascending=False)
+        for threshold_prop, top_bars in zip([0.1, 0.2, 0.5], [top01_bars, top02_bars, top05_bars]):
+            _id = "{:02d}".format(int(10 * threshold_prop))
+            res["vh" + _id][t] = sorted_amplitude_by_vwap["amplitude"].head(top_bars).mean()
+            res["vl" + _id][t] = sorted_amplitude_by_vwap["amplitude"].tail(top_bars).mean()
+            res["vd" + _id][t] = res["vh" + _id][t] - res["vl" + _id][t]
+
         # kyzq: extremely return
-        # huxo: momentum adjusted by volatility
+        ret_min, ret_max, ret_median = m01_before_t["m01_return_cls"].min(), m01_before_t["m01_return_cls"].max(), m01_before_t["m01_return_cls"].median()
+        res["exr"][t] = ret_max if (ret_max + ret_min) > (2 * ret_median) else ret_min
+        idx_exr = m01_before_t["m01_return_cls"].index[m01_before_t["m01_return_cls"] == res["exr"][t]][0]
+        res["exrb01"][t] = m01_before_t["m01_return_cls"].iloc[idx_exr - 1] if idx_exr >= 1 else np.nan
+
         # kyzq: time center weighted by return
+        pos_idx = m01_before_t["m01_return_cls"] > 0
+        neg_idx = m01_before_t["m01_return_cls"] < 0
+        pos_grp = m01_before_t.loc[pos_idx, "m01_return_cls"]
+        neg_grp = m01_before_t.loc[neg_idx, "m01_return_cls"]
+        pos_wgt = pos_grp.abs() / pos_grp.abs().sum()
+        neg_wgt = neg_grp.abs() / neg_grp.abs().sum()
+        res["gu"][t] = pos_grp @ pos_wgt
+        res["gd"][t] = -neg_grp @ neg_wgt
+        res["g_tau"][t] = res["gu"][t] - res["gd"][t]
+        res["g_tau_abs"][t] = abs(res["g_tau"][t])
+
+        # huxo: momentum adjusted by volatility
+        m01_ret_return_mean = m01_before_t["m01_return"].mean()
+        m01_ret_return_std = m01_before_t["m01_return"].std()
+        res["mtm_vol_adj"] = m01_ret_return_mean / m01_ret_return_std
 
         res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
 

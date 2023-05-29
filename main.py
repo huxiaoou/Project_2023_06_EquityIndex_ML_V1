@@ -28,12 +28,12 @@ from dp_01_convert_csv_to_sqlite3 import convert_csv_to_sqlite3
 
 if __name__ == "__main__":
 
-    md_bgn_date, md_stp_date = "20160101", "20230522"
-    trn_bgn_date, trn_stp_date = "20180101", "20230522"
+    md_bgn_date, md_stp_date = "20160101", "20230529"
+    trn_bgn_date, trn_stp_date = "20180101", "20230529"
 
     switch = {
         "split": False,
-        "features_and_return": True,
+        "features_and_return": False,
         "toSql": False,
         "normalize": False,
         "lm": False,
