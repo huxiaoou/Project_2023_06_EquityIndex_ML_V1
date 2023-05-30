@@ -97,55 +97,82 @@ def ic_tests_summary(
         sqlite3_tables: dict,
 ):
     ic_tests_summary_data = []
-    for factor in factors:
-        factor_ic_data = {}
-        for tid in tids:
-            # --- load lib writer
-            ic_tests_lib_id = "{}-{}-ic_tests".format(factor, tid)
-            ic_tests_lib = CManagerLibReader(
-                t_db_save_dir=ic_tests_dir,
-                t_db_name=ic_tests_lib_id + ".db"
-            )
-            ic_tests_lib_stru = sqlite3_tables[ic_tests_lib_id]
-            ic_tests_lib_tab = CTable(t_table_struct=ic_tests_lib_stru)
-            ic_tests_lib.set_default(t_default_table_name=ic_tests_lib_tab.m_table_name)
+    ic_data_by_fac, ic_data_by_tid = {f: {} for f in factors}, {t: {} for t in tids}
+    for factor, tid in ittl.product(factors, tids):
+        # --- load lib writer
+        ic_tests_lib_id = "{}-{}-ic_tests".format(factor, tid)
+        ic_tests_lib = CManagerLibReader(
+            t_db_save_dir=ic_tests_dir,
+            t_db_name=ic_tests_lib_id + ".db"
+        )
+        ic_tests_lib_stru = sqlite3_tables[ic_tests_lib_id]
+        ic_tests_lib_tab = CTable(t_table_struct=ic_tests_lib_stru)
+        ic_tests_lib.set_default(t_default_table_name=ic_tests_lib_tab.m_table_name)
 
-            ic_df = ic_tests_lib.read_by_conditions(
-                t_conditions=[
-                    ("trade_date", ">=", bgn_date),
-                    ("trade_date", "<", stp_date),
-                ],
-                t_value_columns=["trade_date", "ic"]
-            ).set_index("trade_date")
-            factor_ic_data[tid] = ic_df["ic"]
+        ic_df = ic_tests_lib.read_by_conditions(
+            t_conditions=[
+                ("trade_date", ">=", bgn_date),
+                ("trade_date", "<", stp_date),
+            ],
+            t_value_columns=["trade_date", "ic"]
+        ).set_index("trade_date")
+        ic_data_by_fac[factor][tid] = ic_df["ic"]
+        ic_data_by_tid[tid][factor] = ic_df["ic"]
 
-            ic_tests_summary_data.append({
-                "factor": factor,
-                "tid": tid,
-                "obs": len(ic_df),
-                "mean": ic_df["ic"].mean(),
-                "std": ic_df["ic"].std(),
-                "icir": ic_df["ic"].mean() / ic_df["ic"].std() * np.sqrt(252),
-            })
+        ic_tests_summary_data.append({
+            "factor": factor,
+            "tid": tid,
+            "obs": len(ic_df),
+            "mean": ic_df["ic"].mean(),
+            "std": ic_df["ic"].std(),
+            "icir": ic_df["ic"].mean() / ic_df["ic"].std() * np.sqrt(252),
+        })
 
-        factor_ic_df = pd.DataFrame(factor_ic_data)
-        factor_ic_df_cumsum = factor_ic_df.cumsum()
+    # plot by factor
+    for f, f_data in ic_data_by_fac.items():
+        ic_df_by_fac = pd.DataFrame(f_data)
+        ic_df_by_fac_cumsum = ic_df_by_fac.cumsum()
         plot_lines(
-            t_plot_df=factor_ic_df_cumsum,
-            t_fig_name="{}-ic-cumsum".format(factor),
+            t_plot_df=ic_df_by_fac_cumsum,
+            t_fig_name="{}-ic-cumsum".format(f),
+            t_ylim=(-150, 150),
             t_colormap="jet",
             t_save_dir=ic_tests_summary_dir
         )
+        print("...", f, "plotted")
 
-    summary_df = pd.DataFrame(ic_tests_summary_data)
-    summary_file = "ic_summary-{}-{}.csv".format(bgn_date, stp_date)
-    summary_df.to_csv(
-        os.path.join(ic_tests_summary_dir, summary_file),
-        index=False, float_format="%.4f"
-    )
-    summary_file = "ic_summary-latest.csv".format(bgn_date, stp_date)
-    summary_df.to_csv(
-        os.path.join(ic_tests_summary_dir, summary_file),
-        index=False, float_format="%.4f"
-    )
+    # plot by tid
+    for t, t_data in ic_data_by_tid.items():
+        ic_df_by_tid = pd.DataFrame(t_data)
+        ic_df_by_tid_cumsum = ic_df_by_tid.cumsum()
+
+        sorted_cumsum = ic_df_by_tid_cumsum.iloc[-1, :].sort_values(ascending=False)
+        head_factors = sorted_cumsum.head(8).index.to_list()
+        tail_factors = sorted_cumsum.tail(8).index.to_list()
+
+        plot_lines(
+            t_plot_df=ic_df_by_tid_cumsum[head_factors + tail_factors],
+            t_fig_name="{}-ic-cumsum".format(t),
+            t_colormap="jet",
+            t_ylim=(-150, 150),
+            t_save_dir=ic_tests_summary_dir
+        )
+        print("...", t, "plotted")
+
+    # summary all
+    summary_df = pd.DataFrame(ic_tests_summary_data).sort_values(by=["tid", "icir"], ascending=[True, False])
+    pd.set_option("display.max_rows", 16)
+    for tid, tid_summary_df in summary_df.groupby(by="tid"):
+        tid_summary_file = "ic_summary-{}-{}-{}.csv".format(tid, bgn_date, stp_date)
+        tid_summary_df.to_csv(
+            os.path.join(ic_tests_summary_dir, tid_summary_file),
+            index=False, float_format="%.4f"
+        )
+        tid_summary_file = "ic_summary-{}-latest.csv".format(tid)
+        tid_summary_df.to_csv(
+            os.path.join(ic_tests_summary_dir, tid_summary_file),
+            index=False, float_format="%.4f"
+        )
+        print("\n-------------------\n...", tid, "ic summary")
+        print(tid_summary_df)
     return 0
