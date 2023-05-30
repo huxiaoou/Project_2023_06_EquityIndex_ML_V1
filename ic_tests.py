@@ -116,16 +116,18 @@ def ic_tests_summary(
             ],
             t_value_columns=["trade_date", "ic"]
         ).set_index("trade_date")
-        ic_data_by_fac[factor][tid] = ic_df["ic"]
-        ic_data_by_tid[tid][factor] = ic_df["ic"]
+
+        ic_srs = ic_df["ic"]
+        ic_data_by_fac[factor][tid] = ic_srs
+        ic_data_by_tid[tid][factor] = ic_srs
 
         ic_tests_summary_data.append({
             "factor": factor,
             "tid": tid,
             "obs": len(ic_df),
-            "mean": ic_df["ic"].mean(),
-            "std": ic_df["ic"].std(),
-            "icir": ic_df["ic"].mean() / ic_df["ic"].std() * np.sqrt(252),
+            "mean": ic_srs.mean(),
+            "std": ic_srs.std(),
+            "icir": ic_srs.mean() / ic_srs.std() * np.sqrt(252),
         })
 
     # plot by factor

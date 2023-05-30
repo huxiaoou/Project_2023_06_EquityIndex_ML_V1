@@ -6,6 +6,8 @@ from project_setup import major_minor_dir
 from project_setup import research_features_and_return_dir
 from project_setup import research_ic_tests_dir
 from project_setup import research_ic_tests_summary_dir
+from project_setup import research_group_tests_dir
+from project_setup import research_group_tests_summary_dir
 from project_config import sqlite3_tables
 from project_config import equity_indexes
 from project_config import factors
@@ -14,6 +16,8 @@ from dp_00_features_and_return import split_spot_daily_k, cal_features_and_retur
 from dp_01_convert_csv_to_sqlite3 import convert_csv_to_sqlite3
 from ic_tests import multi_process_fun_for_ic_tests
 from ic_tests import ic_tests_summary
+from group_tests import multi_process_fun_for_group_tests
+from group_tests import group_tests_summary
 
 if __name__ == "__main__":
 
@@ -25,6 +29,8 @@ if __name__ == "__main__":
         "toSql": False,
         "ic_tests": False,
         "ic_tests_summary": False,
+        "group_tests": False,
+        "group_tests_summary": False,
     }
 
     if switch["split"]:
@@ -69,5 +75,24 @@ if __name__ == "__main__":
             bgn_date=md_bgn_date, stp_date=md_stp_date,
             ic_tests_dir=research_ic_tests_dir,
             ic_tests_summary_dir=research_ic_tests_summary_dir,
+            sqlite3_tables=sqlite3_tables
+        )
+
+    if switch["group_tests"]:
+        multi_process_fun_for_group_tests(
+            group_n=5,
+            factors=factors, tids=tids,
+            run_mode="o", bgn_date=md_bgn_date, stp_date=md_stp_date,
+            features_and_return_dir=research_features_and_return_dir,
+            group_tests_dir=research_group_tests_dir,
+            sqlite3_tables=sqlite3_tables,
+        )
+
+    if switch["group_tests_summary"]:
+        group_tests_summary(
+            factors=factors, tids=tids,
+            bgn_date=md_bgn_date, stp_date=md_stp_date,
+            group_tests_dir=research_group_tests_dir,
+            group_tests_summary_dir=research_group_tests_summary_dir,
             sqlite3_tables=sqlite3_tables
         )

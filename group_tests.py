@@ -104,3 +104,103 @@ def multi_process_fun_for_group_tests(
     for t in to_join_list:
         t.join()
     return 0
+
+
+def group_tests_summary(
+        factors: list[str], tids: list[str],
+        bgn_date: str, stp_date: str,
+        group_tests_dir: str,
+        group_tests_summary_dir: str,
+        sqlite3_tables: dict,
+):
+    group_tests_summary_data = []
+    group_data_by_fac, group_data_by_tid = {f: {} for f in factors}, {t: {} for t in tids}
+    for factor, tid in ittl.product(factors, tids):
+        # --- load lib writer
+        group_tests_lib_id = "{}-{}-group_tests".format(factor, tid)
+        group_tests_lib = CManagerLibReader(
+            t_db_save_dir=group_tests_dir,
+            t_db_name=group_tests_lib_id + ".db"
+        )
+        group_tests_lib_stru = sqlite3_tables[group_tests_lib_id]
+        group_tests_lib_tab = CTable(t_table_struct=group_tests_lib_stru)
+        group_tests_lib.set_default(t_default_table_name=group_tests_lib_tab.m_table_name)
+
+        ret_df = group_tests_lib.read_by_conditions(
+            t_conditions=[
+                ("trade_date", ">=", bgn_date),
+                ("trade_date", "<", stp_date),
+            ],
+            t_value_columns=["trade_date", "lng", "srt", "hdg"]
+        ).set_index("trade_date")
+
+        ret_srs = ret_df["hdg"]
+        group_data_by_fac[factor][tid] = ret_srs
+        group_data_by_tid[tid][factor] = ret_srs
+
+        group_tests_summary_data.append({
+            "factor": factor,
+            "tid": tid,
+            "obs": len(ret_df),
+            "mean": ret_srs.mean(),
+            "std": ret_srs.std(),
+            "sharpe": ret_srs.mean() / ret_srs.std() * np.sqrt(252),
+        })
+
+    # plot by factor
+    for f, f_data in group_data_by_fac.items():
+        ret_df_by_fac = pd.DataFrame(f_data)
+        ret_df_by_fac_cumsum = ret_df_by_fac.cumsum()
+        plot_lines(
+            t_plot_df=ret_df_by_fac_cumsum,
+            t_fig_name="{}-hdg-cumsum".format(f),
+            # t_ylim=(-150, 150),
+            t_colormap="jet",
+            t_save_dir=group_tests_summary_dir
+        )
+        print("...", f, "plotted")
+
+    # plot by tid
+    for t, t_data in group_data_by_tid.items():
+        ret_df_by_tid = pd.DataFrame(t_data)
+        ret_df_by_tid_cumsum = ret_df_by_tid.cumsum()
+
+        sorted_cumsum = ret_df_by_tid_cumsum.iloc[-1, :].sort_values(ascending=False)
+        head_factors = sorted_cumsum.head(8).index.to_list()
+        tail_factors = sorted_cumsum.tail(8).index.to_list()
+
+        plot_lines(
+            t_plot_df=ret_df_by_tid_cumsum[head_factors + tail_factors],
+            t_fig_name="{}-hdg-cumsum".format(t),
+            t_colormap="jet",
+            # t_ylim=(-150, 150),
+            t_save_dir=group_tests_summary_dir
+        )
+        print("...", t, "plotted")
+
+        selected_factors_df = pd.DataFrame({
+            "factors": head_factors + tail_factors,
+            "direction": [1] * len(head_factors) + [-1] * len(tail_factors)
+        })
+        selected_factors_df.to_csv(
+            os.path.join(group_tests_summary_dir, "selected-factors-{}.csv.gz".format(t)),
+            index=False
+        )
+
+    # summary all
+    summary_df = pd.DataFrame(group_tests_summary_data).sort_values(by=["tid", "sharpe"], ascending=[True, False])
+    pd.set_option("display.max_rows", 16)
+    for tid, tid_summary_df in summary_df.groupby(by="tid"):
+        tid_summary_file = "hdg_summary-{}-{}-{}.csv".format(tid, bgn_date, stp_date)
+        tid_summary_df.to_csv(
+            os.path.join(group_tests_summary_dir, tid_summary_file),
+            index=False, float_format="%.4f"
+        )
+        tid_summary_file = "hdg_summary-{}-latest.csv".format(tid)
+        tid_summary_df.to_csv(
+            os.path.join(group_tests_summary_dir, tid_summary_file),
+            index=False, float_format="%.4f"
+        )
+        print("\n-------------------\n...", tid, "hdg summary")
+        print(tid_summary_df)
+    return 0
