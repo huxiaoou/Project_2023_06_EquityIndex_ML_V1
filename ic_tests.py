@@ -8,7 +8,7 @@ from skyrim.falkreath import CManagerLibReader, CTable, CManagerLibWriter
 from skyrim.winterhold import plot_lines
 
 
-def it_test_per_factor_and_tid(
+def ic_test_per_factor_and_tid(
         factor: str, tid: str,
         run_mode: str, bgn_date: str, stp_date: str | None,
         features_and_return_dir: str,
@@ -53,7 +53,7 @@ def it_test_per_factor_and_tid(
         "obs": obs_srs,
         "ic": ic_srs
     }, index=ic_tests_srs.index).fillna(0)
-    ic_tests_lib.update(t_update_df=ic_tests_df, t_using_index=True, )
+    ic_tests_lib.update(t_update_df=ic_tests_df, t_using_index=True)
 
     # close libs
     features_and_return_lib.close()
@@ -68,7 +68,7 @@ def process_target_fun_for_ic_tests(
 ):
     for i, (factor, tid) in enumerate(ittl.product(factors, tids)):
         if i % group_n == group_id:
-            it_test_per_factor_and_tid(factor=factor, tid=tid, **kwargs)
+            ic_test_per_factor_and_tid(factor=factor, tid=tid, **kwargs)
     return 0
 
 

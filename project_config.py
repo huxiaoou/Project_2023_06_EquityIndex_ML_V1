@@ -87,6 +87,23 @@ for factor, tid in ittl.product(factors, tids):
         },
     })
 
+# --- ic tests
+for factor, tid in ittl.product(factors, tids):
+    group_tests_lib_id = "{}-{}-group_tests".format(factor, tid)
+    sqlite3_tables.update({
+        group_tests_lib_id: {
+            "table_name": "ic_tests",
+            "primary_keys": {
+                "trade_date": "TEXT",
+            },
+            "value_columns": {
+                "lng": "REAL",
+                "srt": "REAL",
+                "hdg": "REAL",
+            }
+        },
+    })
+
 # --- simulation
 cost_rate = 5e-4
 
