@@ -179,7 +179,7 @@ def group_tests_summary(
         print("...", t, "plotted")
 
         selected_factors_df = pd.DataFrame({
-            "factors": head_factors + tail_factors,
+            "factor": head_factors + tail_factors,
             "direction": [1] * len(head_factors) + [-1] * len(tail_factors)
         })
         selected_factors_df.to_csv(
