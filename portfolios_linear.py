@@ -115,7 +115,7 @@ def portfolios_linear(
         "Sharpe": ret_sharpe
     }).T
     performance_df.to_csv(
-        os.path.join(portfolios_dir, "portfolios-linear-eval.py"),
+        os.path.join(portfolios_dir, "portfolios-linear-eval.csv"),
         float_format="%.6f"
     )
 
