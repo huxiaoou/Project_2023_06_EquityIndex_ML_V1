@@ -9,10 +9,14 @@ from project_setup import research_ic_tests_summary_dir
 from project_setup import research_group_tests_dir
 from project_setup import research_group_tests_summary_dir
 from project_setup import research_portfolios_dir
+from project_setup import research_models_dir
 from project_config import sqlite3_tables
 from project_config import equity_indexes
 from project_config import factors
-from project_config import tids
+from project_config import instruments_universe, tids
+from project_config import train_windows
+from project_config import x_lbls, y_lbls
+from project_config import cost_rate
 from dp_00_features_and_return import split_spot_daily_k, cal_features_and_return
 from dp_01_convert_csv_to_sqlite3 import convert_csv_to_sqlite3
 from ic_tests import multi_process_fun_for_ic_tests
@@ -20,10 +24,12 @@ from ic_tests import ic_tests_summary
 from group_tests import multi_process_fun_for_group_tests
 from group_tests import group_tests_summary
 from portfolios_linear import portfolios_linear
+from ml_normalize import ml_normalize
 
 if __name__ == "__main__":
 
     md_bgn_date, md_stp_date = "20160101", "20230529"
+    trn_bgn_date, trn_stp_date = "20170101", "20230522"
 
     switch = {
         "split": False,
@@ -34,6 +40,7 @@ if __name__ == "__main__":
         "group_tests": False,
         "group_tests_summary": False,
         "portfolios_linear": False,
+        "normalize": False,
     }
 
     if switch["split"]:
@@ -107,4 +114,15 @@ if __name__ == "__main__":
             group_tests_summary_dir=research_group_tests_summary_dir,
             portfolios_dir=research_portfolios_dir,
             sqlite3_tables=sqlite3_tables
+        )
+
+    if switch["normalize"]:
+        ml_normalize(
+            instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
+            bgn_date=trn_bgn_date, stp_date=trn_stp_date,
+            calendar_path=calendar_path,
+            features_and_return_dir=research_features_and_return_dir,
+            models_dir=research_models_dir,
+            sqlite3_tables=sqlite3_tables,
+            x_lbls=x_lbls, y_lbls=y_lbls
         )
