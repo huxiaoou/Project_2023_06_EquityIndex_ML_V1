@@ -23,8 +23,8 @@ from ic_tests import multi_process_fun_for_ic_tests
 from ic_tests import ic_tests_summary
 from group_tests import multi_process_fun_for_group_tests
 from group_tests import group_tests_summary
-from portfolios_linear import portfolios_linear
-from ml_normalize import ml_normalize
+from portfolios_linear import portfolios_linear_mp
+from ml_normalize import ml_normalize_mp
 
 if __name__ == "__main__":
 
@@ -108,7 +108,8 @@ if __name__ == "__main__":
         )
 
     if switch["portfolios_linear"]:
-        portfolios_linear(
+        portfolios_linear_mp(
+            proc_num=5,
             tids=tids, bgn_date=md_bgn_date, stp_date=md_stp_date,
             features_and_return_dir=research_features_and_return_dir,
             group_tests_summary_dir=research_group_tests_summary_dir,
@@ -117,7 +118,8 @@ if __name__ == "__main__":
         )
 
     if switch["normalize"]:
-        ml_normalize(
+        ml_normalize_mp(
+            proc_num=5,
             instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
             bgn_date=trn_bgn_date, stp_date=trn_stp_date,
             calendar_path=calendar_path,

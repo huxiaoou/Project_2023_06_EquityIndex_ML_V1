@@ -64,25 +64,19 @@ def portfolios_linear_per_tid(
     return portfolio_ret_srs
 
 
-def portfolios_linear(
-        tids: list[str],
-        bgn_date: str, stp_date: str | None,
-        features_and_return_dir: str,
-        group_tests_summary_dir: str,
-        portfolios_dir: str,
-        sqlite3_tables: dict,
+def portfolios_linear_mp(
+        proc_num: int,
+        tids: list[str], portfolios_dir: str,
+        **kwargs
 ):
-    pool = mp.Pool(processes=5)
+    pool = mp.Pool(processes=proc_num)
     res = []
     for tid in tids:
         print("...", "@", dt.datetime.now(), tid, "started")
         t = pool.apply_async(
             portfolios_linear_per_tid,
-            args=(tid,
-                  bgn_date, stp_date,
-                  features_and_return_dir,
-                  group_tests_summary_dir,
-                  sqlite3_tables)
+            args=(tid,),
+            kwds=kwargs,
         )
         res.append(t)
 

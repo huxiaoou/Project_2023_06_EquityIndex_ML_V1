@@ -70,7 +70,7 @@ sqlite3_tables = {
 
 instruments_universe = ["IC.CFE", "IH.CFE", "IF.CFE", "IM.CFE"]
 tids = ["T{:02d}".format(t) for t in range(1, 8)]
-train_windows = (6, 12, 24)
+train_windows = (12, 24, 36)
 x_lbls, y_lbls = factors, ["rtm"]
 
 # --- ic tests

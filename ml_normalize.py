@@ -1,6 +1,7 @@
 import os
 import datetime as dt
 import itertools as ittl
+import multiprocessing as mp
 from sklearn.preprocessing import StandardScaler
 from skyrim.falkreath import CManagerLibReader, CTable
 from skyrim.whiterun import CCalendarMonthly
@@ -82,17 +83,26 @@ def ml_normalize_per_instru_and_tid(
         scaler.fit(x_df)
         save_to_sio_obj(scaler, scaler_path)
 
-        print("... {0} | NORM | {1:>24s} | {2} | Normalized |".format(
-            dt.datetime.now(), model_grp_id, train_end_month))
+    print("... {0} | NORMALIZED | {1:>24s} | Normalized |".format(
+        dt.datetime.now(), model_grp_id))
 
     features_and_return_lib.close()
     return 0
 
 
-def ml_normalize(instruments: list[str | None], tids: list[str], train_windows: list[int],
-                 **kwargs):
+def ml_normalize_mp(proc_num: int,
+                    instruments: list[str | None], tids: list[str], train_windows: list[int],
+                    **kwargs):
+    t0 = dt.datetime.now()
+    pool = mp.Pool(processes=proc_num)
     for instrument, tid, trn_win in ittl.product(instruments, tids, train_windows):
-        ml_normalize_per_instru_and_tid(
-            instrument=instrument, tid=tid, trn_win=trn_win,
-            **kwargs
+        pool.apply_async(
+            ml_normalize_per_instru_and_tid,
+            args=(instrument, tid, trn_win),
+            kwds=kwargs
         )
+    pool.close()
+    pool.join()
+    t1 = dt.datetime.now()
+    print("... total time consuming: {:.2f} seconds".format((t1 - t0).total_seconds()))
+    return 0
