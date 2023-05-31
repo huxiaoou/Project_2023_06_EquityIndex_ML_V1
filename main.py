@@ -10,6 +10,7 @@ from project_setup import research_group_tests_dir
 from project_setup import research_group_tests_summary_dir
 from project_setup import research_portfolios_dir
 from project_setup import research_models_dir
+from project_setup import research_predictions_dir
 from project_config import sqlite3_tables
 from project_config import equity_indexes
 from project_config import factors
@@ -27,6 +28,7 @@ from portfolios_linear import portfolios_linear_mp
 from ml_normalize import ml_normalize_mp
 from ml_train_rrcv import ml_rrcv_mp
 from ml_train_mlpc import ml_mlpc_mp
+from ml_test import ml_test_mp
 
 if __name__ == "__main__":
 
@@ -45,6 +47,8 @@ if __name__ == "__main__":
         "normalize": False,
         "rrcv": False,
         "mlpc": False,
+        "test": False,
+        "summary": False,
     }
 
     if switch["split"]:
@@ -153,6 +157,19 @@ if __name__ == "__main__":
             calendar_path=calendar_path,
             features_and_return_dir=research_features_and_return_dir,
             models_dir=research_models_dir,
+            sqlite3_tables=sqlite3_tables,
+            x_lbls=x_lbls, y_lbls=y_lbls
+        )
+
+    if switch["test"]:
+        ml_test_mp(
+            proc_num=5,
+            model_lbls=["rrcv", "mlpc"], instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
+            bgn_date=trn_bgn_date, stp_date=trn_stp_date,
+            calendar_path=calendar_path,
+            features_and_return_dir=research_features_and_return_dir,
+            models_dir=research_models_dir,
+            predictions_dir=research_predictions_dir,
             sqlite3_tables=sqlite3_tables,
             x_lbls=x_lbls, y_lbls=y_lbls
         )
