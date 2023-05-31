@@ -37,7 +37,7 @@ from ml_summary import ml_summary
 if __name__ == "__main__":
 
     md_bgn_date, md_stp_date = "20160101", "20230529"
-    trn_bgn_date, trn_stp_date = "20170101", "20230522"
+    trn_bgn_date, trn_stp_date = "20170101", "20230501"
 
     switch = {
         "split": False,

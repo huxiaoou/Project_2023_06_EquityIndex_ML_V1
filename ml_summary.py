@@ -14,12 +14,12 @@ def cal_precision_and_recall(t_value: int, t_y_actu: np.ndarray, t_y_pred: np.nd
     _tn = sum(t_y_actu[t_y_pred != t_value] != t_value)
 
     _p = (_tp + _fn) / _obs
-    pos_prec = _tp / (_tp + _fp)
-    pos_reca = _tp / (_tp + _fn)
+    pos_prec = _tp / (_tp + _fp) if _tp + _fp > 0 else 0
+    pos_reca = _tp / (_tp + _fn) if _tp + _fn > 0 else 0
 
     _q = (_tn + _fp) / _obs
-    neg_prec = _tn / (_tn + _fn)
-    neg_reca = _tn / (_tn + _fp)
+    neg_prec = _tn / (_tn + _fn) if _tn + _fn > 0 else 0
+    neg_reca = _tn / (_tn + _fp) if _tn + _fp > 0 else 0
 
     win_rate = (_tp + _tn) / _obs
 
