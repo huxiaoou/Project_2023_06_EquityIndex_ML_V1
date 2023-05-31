@@ -2,21 +2,21 @@ import os
 import datetime as dt
 import itertools as ittl
 import multiprocessing as mp
-from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.linear_model import RidgeCV
 from skyrim.falkreath import CManagerLibReader, CTable
 from skyrim.whiterun import CCalendarMonthly
-from skyrim.winterhold import check_and_mkdir
 from xfuns import save_to_sio_obj
+from xfuns import read_from_sio_obj
 
 
-def ml_normalize_per_instru_and_tid(
+def ml_rrcv_per_instru_and_tid(
         instrument: str | None, tid: str, trn_win: int,
         bgn_date: str, stp_date: str,
         calendar_path: str,
         features_and_return_dir: str, models_dir: str,
         sqlite3_tables: dict,
         x_lbls: list, y_lbls: list,
-        minimum_data_size: int = 100
 ):
     """
 
@@ -31,7 +31,6 @@ def ml_normalize_per_instru_and_tid(
     :param sqlite3_tables:
     :param x_lbls:
     :param y_lbls: "rtm" must be in it
-    :param minimum_data_size:
     :return:
     """
 
@@ -57,10 +56,13 @@ def ml_normalize_per_instru_and_tid(
     iter_months = calendar.map_iter_dates_to_iter_months(bgn_date, stp_date)
 
     # --- main core
-    scaler = StandardScaler()
+    train_model, model_lbl = \
+        RidgeCV(alphas=(10, 20, 50,
+                        100, 200, 500,
+                        1000, 2000, 5000)), "rrcv"
     for train_end_month in iter_months:
-        check_and_mkdir(model_year_dir := os.path.join(models_dir, train_end_month[0:4]))
-        check_and_mkdir(model_month_dir := os.path.join(model_year_dir, train_end_month))
+        model_year_dir = os.path.join(models_dir, train_end_month[0:4])
+        model_month_dir = os.path.join(model_year_dir, train_end_month)
 
         train_bgn_date, train_end_date = calendar.get_bgn_and_end_dates_for_trailing_window(train_end_month, trn_win)
         conds = init_conds + [
@@ -71,8 +73,6 @@ def ml_normalize_per_instru_and_tid(
             t_conditions=conds,
             t_value_columns=x_lbls + y_lbls
         )
-        if len(src_df) < minimum_data_size:
-            continue
         x_df, y_df = src_df[x_lbls], src_df[y_lbls]
 
         # --- normalize
@@ -80,24 +80,36 @@ def ml_normalize_per_instru_and_tid(
             model_month_dir,
             "{}-{}.scl".format(model_grp_id, train_end_month)
         )
-        scaler.fit(x_df)
-        save_to_sio_obj(scaler, scaler_path)
+        try:
+            scaler = read_from_sio_obj(scaler_path)
+        except FileNotFoundError:
+            continue
 
-    print("... {0} | NORMALIZED | {1:>24s} | Normalized |".format(
-        dt.datetime.now(), model_grp_id))
+        # --- fit model
+        x_train = np.nan_to_num(scaler.transform(x_df), nan=0)
+        train_model.fit(X=x_train, y=y_df.values[:, 0])
+
+        train_model_file = "{}-{}.{}".format(model_grp_id, train_end_month, model_lbl)
+        train_model_path = os.path.join(model_month_dir, train_model_file)
+
+        # --- save model
+        save_to_sio_obj(train_model, train_model_path)
+
+        print("... {0} | {1} | {2:>24s} | {3} | fitted | alpha = {4:>8.2f} |".format(
+            dt.datetime.now(), model_lbl, model_grp_id, train_end_month, train_model.alpha_))
 
     features_and_return_lib.close()
     return 0
 
 
-def ml_normalize_mp(proc_num: int,
-                    instruments: list[str | None], tids: list[str], train_windows: list[int],
-                    **kwargs):
+def ml_rrcv_mp(proc_num: int,
+               instruments: list[str | None], tids: list[str], train_windows: list[int],
+               **kwargs):
     t0 = dt.datetime.now()
     pool = mp.Pool(processes=proc_num)
     for instrument, tid, trn_win in ittl.product(instruments, tids, train_windows):
         pool.apply_async(
-            ml_normalize_per_instru_and_tid,
+            ml_rrcv_per_instru_and_tid,
             args=(instrument, tid, trn_win),
             kwds=kwargs
         )

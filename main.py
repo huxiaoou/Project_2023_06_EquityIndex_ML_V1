@@ -25,6 +25,8 @@ from group_tests import multi_process_fun_for_group_tests
 from group_tests import group_tests_summary
 from portfolios_linear import portfolios_linear_mp
 from ml_normalize import ml_normalize_mp
+from ml_train_rrcv import ml_rrcv_mp
+from ml_train_mlpc import ml_mlpc_mp
 
 if __name__ == "__main__":
 
@@ -41,6 +43,8 @@ if __name__ == "__main__":
         "group_tests_summary": False,
         "portfolios_linear": False,
         "normalize": False,
+        "rrcv": False,
+        "mlpc": False,
     }
 
     if switch["split"]:
@@ -119,6 +123,30 @@ if __name__ == "__main__":
 
     if switch["normalize"]:
         ml_normalize_mp(
+            proc_num=5,
+            instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
+            bgn_date=trn_bgn_date, stp_date=trn_stp_date,
+            calendar_path=calendar_path,
+            features_and_return_dir=research_features_and_return_dir,
+            models_dir=research_models_dir,
+            sqlite3_tables=sqlite3_tables,
+            x_lbls=x_lbls, y_lbls=y_lbls
+        )
+
+    if switch["rrcv"]:
+        ml_rrcv_mp(
+            proc_num=5,
+            instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
+            bgn_date=trn_bgn_date, stp_date=trn_stp_date,
+            calendar_path=calendar_path,
+            features_and_return_dir=research_features_and_return_dir,
+            models_dir=research_models_dir,
+            sqlite3_tables=sqlite3_tables,
+            x_lbls=x_lbls, y_lbls=y_lbls
+        )
+
+    if switch["mlpc"]:
+        ml_mlpc_mp(
             proc_num=5,
             instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
             bgn_date=trn_bgn_date, stp_date=trn_stp_date,
