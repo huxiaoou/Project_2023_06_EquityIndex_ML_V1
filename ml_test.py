@@ -111,8 +111,6 @@ def ml_test_per_model(
             t_using_index=False
         )
 
-    print("... {0} | {1} | {2:>24s} | {3} | tested |".format(
-        dt.datetime.now(), model_lbl, model_grp_id, train_end_month))
     predictions_lib.close()
     features_and_return_lib.close()
     return 0

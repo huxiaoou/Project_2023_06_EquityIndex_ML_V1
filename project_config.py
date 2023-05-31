@@ -106,6 +106,28 @@ for factor, tid in ittl.product(factors, tids):
         },
     })
 
+model_lbls = ["rrcv", "mlpc"]
+for instrument, tid, trn_win, model_lbl in ittl.product(
+        instruments_universe + [None], tids, train_windows, model_lbls):
+    model_grp_id = "-".join(filter(lambda z: z, ["M", instrument, tid, "TMW{:02d}".format(trn_win)]))
+    pred_id = model_grp_id + "-pred-{}".format(model_lbl)
+    sqlite3_tables.update({
+        pred_id: {
+            "table_name": "predictions",
+            "primary_keys": {
+                "trade_date": "TEXT",
+                "instrument": "TEXT",
+                "contract": "TEXT",
+                "tid": "TEXT",
+                "timestamp": "INT4",
+            },
+            "value_columns": {
+                "rtm": "REAL",
+                "pred": "REAL",
+            }
+        },
+    })
+
 # --- simulation
 cost_rate = 5e-4
 

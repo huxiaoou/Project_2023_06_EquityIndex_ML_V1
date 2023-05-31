@@ -11,11 +11,14 @@ from project_setup import research_group_tests_summary_dir
 from project_setup import research_portfolios_dir
 from project_setup import research_models_dir
 from project_setup import research_predictions_dir
+from project_setup import research_navs_dir
+from project_setup import research_summary_dir
 from project_config import sqlite3_tables
 from project_config import equity_indexes
 from project_config import factors
 from project_config import instruments_universe, tids
 from project_config import train_windows
+from project_config import model_lbls
 from project_config import x_lbls, y_lbls
 from project_config import cost_rate
 from dp_00_features_and_return import split_spot_daily_k, cal_features_and_return
@@ -29,6 +32,7 @@ from ml_normalize import ml_normalize_mp
 from ml_train_rrcv import ml_rrcv_mp
 from ml_train_mlpc import ml_mlpc_mp
 from ml_test import ml_test_mp
+from ml_summary import ml_summary
 
 if __name__ == "__main__":
 
@@ -164,7 +168,7 @@ if __name__ == "__main__":
     if switch["test"]:
         ml_test_mp(
             proc_num=5,
-            model_lbls=["rrcv", "mlpc"], instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
+            model_lbls=model_lbls, instruments=instruments_universe + [None], tids=tids, train_windows=train_windows,
             bgn_date=trn_bgn_date, stp_date=trn_stp_date,
             calendar_path=calendar_path,
             features_and_return_dir=research_features_and_return_dir,
@@ -173,3 +177,14 @@ if __name__ == "__main__":
             sqlite3_tables=sqlite3_tables,
             x_lbls=x_lbls, y_lbls=y_lbls
         )
+
+    if switch["summary"]:
+        for model_lbl in model_lbls:
+            ml_summary(
+                model_lbl=model_lbl,
+                instruments_universe=instruments_universe, tids=tids, train_windows=train_windows,
+                sqlite3_tables=sqlite3_tables,
+                predictions_dir=research_predictions_dir, navs_dir=research_navs_dir,
+                research_summary_dir=research_summary_dir,
+                cost_rate=cost_rate
+            )
