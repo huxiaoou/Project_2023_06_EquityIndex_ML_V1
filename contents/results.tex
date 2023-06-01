@@ -1,0 +1,72 @@
+\section{ic-tests}
+
+\foreach \tid in {T01, T02, T03, T04, T05, T06, T07}{
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.96\textwidth]{\pathForDataDir/ic_tests_summary/\tid-ic-cumsum.pdf}
+            \caption{累积ic曲线-\tid}
+            \label{ic_cumsum_\tid}
+        \end{figure}
+    }
+
+\section{group-tests}
+
+多空对冲，不含手续费，单利累加
+
+\foreach \tid in {T01, T02, T03, T04, T05, T06, T07}{
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=0.96\textwidth]{\pathForDataDir/group_tests_summary/\tid-hdg-cumsum.pdf}
+            \caption{多空对冲收益-\tid}
+            \label{hedge_cumsum_\tid}
+        \end{figure}
+    }
+
+\section{基于多空对冲构建的组合}
+
+选择多空对冲后收益最高的8个小组和构成最终组合，不含手续费，单利累加
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.96\textwidth]{\pathForDataDir/portfolios/portfolios-linear-nav.pdf}
+    \caption{最终组合}
+    \label{fig_final_portfolio}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    % \small
+    % \renewcommand{\arraystretch}{0.80}
+    \begin{tabular}{r rrrr rrr}
+        \toprule
+        指标        & T01       & T02        & T03       & T04      & T05       & T06        & T07          \\
+        \midrule
+        \csvreader[head to column names, late after line=\\]{\pathForDataDir/portfolios/portfolios-linear-eval.csv}{}
+        {\indicator & \csvcolii & \csvcoliii & \csvcoliv & \csvcolv & \csvcolvi & \csvcolvii & \csvcolviii}
+        \bottomrule
+    \end{tabular}
+    \caption{各模型最终组合表现}
+    \label{tab_final_portfolio}
+\end{table}
+
+\newpage
+
+\section{machine-learing}
+\foreach \modelLbl in {rrcv, mlpc}{
+        \begin{table}[H]
+            \centering
+            \scriptsize
+            \renewcommand{\arraystretch}{0.80}
+            \begin{tabular}{rrr rrr rrr}
+                \toprule
+                instrument   & tid  & tmw  & hpr        & ar          & av        & sharpe   & calmar    & mdd         \\
+                \midrule
+                \csvreader[head to column names, late after line=\\]{\pathForDataDir/summary/summary.\modelLbl.trades.csv}{}
+                {\instrument & \tid & \tmw & \csvcolvii & \csvcolviii & \csvcolix & \csvcolx & \csvcolxi & \csvcolxii}
+                \bottomrule
+            \end{tabular}
+            \caption{模型\modelLbl 最终组合表现}
+            \label{tab_performance_\modelLbl}
+        \end{table}
+    }
+

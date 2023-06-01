@@ -1,0 +1,45 @@
+\section{a brief introduction}
+
+instruments universe
+
+\begin{itemize}
+    \item IH.CFE
+    \item IF.CFE
+    \item IH.CFE
+    \item IM.CFE
+\end{itemize}
+
+
+for every 30 minutes in a trading day, a model is constructed
+
+\begin{itemize}
+    \item T01, 10:00
+    \item T02, 10:30
+    \item T03, 11:00
+    \item T04, 13:00
+    \item T05, 13:30
+    \item T06, 14:00
+    \item T07, 14:30
+\end{itemize}
+
+
+trailing windows = [12, 24, 36] months
+
+models
+
+\begin{itemize}
+    \item rrcv: ridge regression cross-validation
+    \item mlpc: multiple level perception classifier
+\end{itemize}
+
+to summary,
+
+\begin{itemize}
+    \item a total of (4+1)*7*3*2=210 models are constructed at the end of each month
+    \item before IM is introduced, (3+1)*7*3*2=168 models are constructed at the end of each month
+    \item tested time window 201801-202305
+    \item cost rate = 5e-4
+\end{itemize}
+
+
+

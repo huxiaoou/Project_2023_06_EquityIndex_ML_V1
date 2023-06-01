@@ -110,6 +110,7 @@ def portfolios_linear_mp(
     }).T
     performance_df.to_csv(
         os.path.join(portfolios_dir, "portfolios-linear-eval.csv"),
+        index_label="indicator",
         float_format="%.6f"
     )
 

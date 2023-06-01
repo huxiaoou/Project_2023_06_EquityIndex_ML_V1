@@ -109,11 +109,14 @@ def ml_summary(model_lbl: str,
             tid if tid else "",
             train_window))
     res_models_df, res_trades_df = pd.DataFrame(res_models), pd.DataFrame(res_trades)
+    res_trades_df["sharpe_ratio"] = res_trades_df["sharpe_ratio"].astype(float)
 
-    res_models_file = "summary.{}.models.csv.gz".format(model_lbl)
-    res_trades_file = "summary.{}.trades.csv.gz".format(model_lbl)
+    res_models_file = "summary.{}.models.csv".format(model_lbl)
+    res_trades_file = "summary.{}.trades.csv".format(model_lbl)
     res_models_path = os.path.join(research_summary_dir, res_models_file)
     res_trades_path = os.path.join(research_summary_dir, res_trades_file)
-    res_models_df.to_csv(res_models_path, index=False, float_format="%.6f")
-    res_trades_df.to_csv(res_trades_path, index=False, float_format="%.6f")
+    res_models_df.to_csv(
+        res_models_path, index=False, float_format="%.6f")
+    res_trades_df.sort_values(by="sharpe_ratio", ascending=False).head(20).to_csv(
+        res_trades_path, index=False, float_format="%.2f")
     return 0
